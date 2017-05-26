@@ -1,0 +1,22 @@
+{
+	"folders":
+	[
+		{
+			"path": "."
+		}
+	],
+	"include_autocomplete_settings":
+	{
+		"include_locations":
+		[
+			{
+				"path": ".",
+				"prefix": ""
+			},
+			{
+				"path": "/home/pieter/.config/sublime-text-3/Packages/include_autocomplete/test/lib",
+				"prefix": ""
+			}
+		]
+	}
+}
