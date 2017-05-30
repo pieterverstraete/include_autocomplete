@@ -30,7 +30,6 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         # Returns a list of location tuples
         result = []
         filedir = os.path.dirname(view.file_name())
-        print(filedir)
         # 1. Get include locations from project data
         incl_settings = DEF_INCL_SETTINGS
         project_data = view.window().project_data()
@@ -64,8 +63,8 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         return (False, "")
 
     def get_include_completions(self, basedir, subdir):
+        print("Looking for completions in %s" % os.path.join(basedir, subdir))
         completions = []
-        print(os.path.join(basedir, subdir))
         for path, dirs, files in os.walk(os.path.join(basedir, subdir)):
             for f in files:
                 if f[-2:] == ".h":
@@ -77,7 +76,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                     completions.append(["%s\t%s"%(f,reldir), completion])
         # Returns include completions in sublime text format for
         # the given location
-        return completions 
+        return completions
 
     def on_query_completions(self, view, prefix, locations):
         incl_locs = self.get_include_locations(view)
