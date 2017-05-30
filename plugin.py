@@ -6,17 +6,14 @@ import sublime, sublime_plugin
 STR_INCL_SETTINGS = 'include_autocomplete_settings'
 STR_INCL_SETTING_INCL_LOC       = 'include_locations'
 STR_INCL_SETTING_IL_PATH        = 'path'
-STR_INCL_SETTING_IL_PREFIX      = 'prefix'
 STR_INCL_SETTING_IL_IGNORE      = 'ignore'
 
 # Default include setting values
 DEF_INCL_SETTING_IL_PATH = '.'
-DEF_INCL_SETTING_IL_PREFIX = ''
 DEF_INCL_SETTING_IL_IGNORE = []
 DEF_INCL_SETTING_INCL_LOC = [
     {
         STR_INCL_SETTING_IL_PATH:   DEF_INCL_SETTING_IL_PATH,
-        STR_INCL_SETTING_IL_PREFIX: DEF_INCL_SETTING_IL_PREFIX,
         STR_INCL_SETTING_IL_IGNORE: DEF_INCL_SETTING_IL_IGNORE
     }
 ]
@@ -43,16 +40,15 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                 if not path:
                     continue
                 path = os.path.join(filedir,path) if os.path.isabs(path) else path
-                prefix = loc.get(STR_INCL_SETTING_IL_PREFIX, DEF_INCL_SETTING_IL_PREFIX)
                 ignore = loc.get(STR_INCL_SETTING_IL_IGNORE, DEF_INCL_SETTING_IL_IGNORE)
                 if not isinstance(ignore, collections.Sequence):
                     ignore = DEF_INCL_SETTING_IL_IGNORE
-                result.append((path, prefix, ignore))
+                result.append((path, ignore))
         return result
 
     def get_subdir(self, view, location, prefix_length):
         # Checks whether the location is valid for our purposes
-        # and gets the subdir and prefix
+        # and gets the subdir
         posx, posy = view.rowcol(location)
         line = view.substr(view.line(location))[:posy]
         line_match = re.match(r'\s*(#include)\s+\"(.*)', line)
@@ -88,7 +84,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         completions = []
         if ok:
             for location in incl_locs:
-                completions += self.get_include_completions(location[0], subdir, location[2])
+                completions += self.get_include_completions(location[0], subdir, location[1])
         if len(completions) > 0:
             return (completions,
                     sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
