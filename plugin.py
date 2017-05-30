@@ -40,12 +40,14 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
             # 2. Verify and format all found locations
             for loc in incl_locations:
                 path = loc.get(STR_INCL_SETTING_IL_PATH, None)
+                if not path:
+                    continue
+                path = os.path.join(filedir,path) if os.path.isabs(path) else path
                 prefix = loc.get(STR_INCL_SETTING_IL_PREFIX, DEF_INCL_SETTING_IL_PREFIX)
-                if path:
-                    if os.path.isabs(path):
-                        result.append((path, prefix))
-                    else:
-                        result.append((os.path.join(filedir,path), prefix))
+                ignore = loc.get(STR_INCL_SETTING_IL_IGNORE, DEF_INCL_SETTING_IL_IGNORE)
+                if not isinstance(ignore, collections.Sequence):
+                    ignore = DEF_INCL_SETTING_IL_IGNORE
+                result.append((path, prefix, ignore))
         return result
 
     def get_subdir(self, view, location, prefix_length):
@@ -62,10 +64,11 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         # completable location and the subdir if present
         return (False, "")
 
-    def get_include_completions(self, basedir, subdir):
-        print("Looking for completions in %s" % os.path.join(basedir, subdir))
+    def get_include_completions(self, basedir, subdir, ignore):
         completions = []
-        for path, dirs, files in os.walk(os.path.join(basedir, subdir)):
+        root = os.path.join(basedir, subdir)
+        print("Looking for completions in %s (ignoring %s)" % (root, ignore))
+        for path, dirs, files in os.walk(root, topdown=True):
             for f in files:
                 if f[-2:] == ".h":
                     reldir = path[len(basedir)+len(subdir)+1:]
@@ -74,6 +77,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                     else:
                         completion = f
                     completions.append(["%s\t%s"%(f,reldir), completion])
+            dirs[:] = [d for d in dirs if d not in ignore]
         # Returns include completions in sublime text format for
         # the given location
         return completions
@@ -84,7 +88,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         completions = []
         if ok:
             for location in incl_locs:
-                completions += self.get_include_completions(location[0], subdir)
+                completions += self.get_include_completions(location[0], subdir, location[2])
         if len(completions) > 0:
             return (completions,
                     sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
