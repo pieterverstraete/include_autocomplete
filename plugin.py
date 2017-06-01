@@ -63,17 +63,18 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
     def get_include_completions(self, basedir, subdir, ignore):
         completions = []
         root = os.path.join(basedir, subdir)
+        root_len = len(root)
         print("Looking for completions in %s (ignoring %s)" % (root, ignore))
         for path, dirs, files in os.walk(root, topdown=True):
+            reldir = path[root_len:]
+            print(path)
+            print(dirs)
+            print(reldir)
             for f in files:
-                if f[-2:] == ".h":
-                    reldir = path[len(basedir)+len(subdir)+1:]
-                    if len(reldir) > 0:
-                        completion = "%s/%s"%(reldir,f)
-                    else:
-                        completion = f
+                if f.endswith('.h'):
+                    completion = os.path.join(reldir,f) if len(reldir) > 0 else f
                     completions.append(["%s\t%s"%(f,reldir), completion])
-            dirs[:] = [d for d in dirs if d not in ignore]
+            dirs[:] = [d for d in dirs if os.path.join(reldir,d) not in ignore]
         # Returns include completions in sublime text format for
         # the given location
         return completions

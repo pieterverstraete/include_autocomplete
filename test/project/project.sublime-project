@@ -11,11 +11,11 @@
 		[
 			{
 				"path": ".",
-				"prefix": ""
+				"ignore": []
 			},
 			{
-				"path": "/home/pieter/.config/sublime-text-3/Packages/include_autocomplete/test/lib",
-				"prefix": ""
+				"path": "/users/pverstra/.config/sublime-text-3/Packages/include_autocomplete/test/lib",
+				"ignore": [ "exclude", "exclude2" ]
 			}
 		]
 	}
