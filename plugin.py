@@ -39,7 +39,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                 path = loc.get(STR_INCL_SETTING_IL_PATH, None)
                 if not path:
                     continue
-                path = os.path.join(filedir,path) if os.path.isabs(path) else path
+                path = os.path.join(filedir,path) if not os.path.isabs(path) else path
                 ignore = loc.get(STR_INCL_SETTING_IL_IGNORE, DEF_INCL_SETTING_IL_IGNORE)
                 if not isinstance(ignore, collections.Sequence):
                     ignore = DEF_INCL_SETTING_IL_IGNORE
