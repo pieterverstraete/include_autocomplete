@@ -18,7 +18,7 @@ When an item from the autocomplete suggestions is selected, the path relative to
 ```
 Selecting `x.h` from the autocomplete suggestions, will be autocompleted as `dir1/include/x.h`.
 
-Also, if you already have a path in your `#include` directive, that path will be taken into account when searching for `.h` files. Using the same include location directory layout as before, autocompletion for `#include "dir1/<...>" will only look for files in the `dir1`, not `dir2`.
+Also, if you already have a path in your `#include` directive, that path will be taken into account when searching for `.h` files. Using the same include location directory layout as before, autocompletion for `#include "dir1/<...>"` will only look for files in the `dir1`, not `dir2`.
 
 ## Installation
 
@@ -51,6 +51,7 @@ The "include locations" key is a list of dictionaries, each containing the follo
 `ignore`: A list of paths relative to `path`, that we should ignore when searching for `.h` files.
 
 If the current file does not have an associated `.sublime-project` file, or the associated `.sublime-project` file does not contain the "include_locations" key, the following defaults will be used:
+
 ```
 "include_autocomplete_settings":
 {
