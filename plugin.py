@@ -39,26 +39,14 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                 path = loc.get(STR_INCL_SETTING_IL_PATH, None)
                 if not path:
                     continue
+                path = sublime.expand_variables(path, view.window().extract_variables())
                 path = os.path.join(filedir,path) if not os.path.isabs(path) else path
                 ignore = loc.get(STR_INCL_SETTING_IL_IGNORE, DEF_INCL_SETTING_IL_IGNORE)
                 if not isinstance(ignore, collections.Sequence):
                     ignore = DEF_INCL_SETTING_IL_IGNORE
+                ignore = list(map(lambda x: sublime.expand_variables(x, view.window().extract_variables()), ignore))
                 result.append((path, ignore))
         return result
-
-    def get_subdir(self, view, location, prefix_length):
-        # Checks whether the location is valid for our purposes
-        # and gets the subdir
-        posx, posy = view.rowcol(location)
-        line = view.substr(view.line(location))[:posy]
-        line_match = re.match(r'\s*(#include)\s+\"(.*)', line)
-        if line_match:
-            include_prefix = line_match.group(2)
-            subdir = include_prefix[:-prefix_length]
-            return (True, subdir)
-        # Returns a boolean that signifies whether we are at a
-        # completable location and the subdir if present
-        return (False, "")
 
     def get_include_completions(self, basedir, subdir, ignore):
         completions = []
@@ -68,7 +56,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         for path, dirs, files in os.walk(root, topdown=True):
             reldir = path[root_len:]
             for f in files:
-                if f.endswith('.h'):
+                if f.endswith(('.h', '.hh', '.hpp', '.hxx', '.inl', '.inc', '.ipp')):
                     completion = os.path.join(reldir,f) if len(reldir) > 0 else f
                     completions.append(["%s\t%s"%(f,reldir), completion])
             dirs[:] = [d for d in dirs if os.path.join(reldir,d) not in ignore]
@@ -77,12 +65,17 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         return completions
 
     def on_query_completions(self, view, prefix, locations):
+        if len(locations) != 1:
+            return None
+        if not view.match_selector(locations[0],
+                                   "meta.preprocessor.include & "
+                                   "(string.quoted.other | "
+                                   "string.quoted.double)"):
+            return None
         incl_locs = self.get_include_locations(view)
-        ok,subdir = self.get_subdir(view, locations[0], len(prefix))
         completions = []
-        if ok:
-            for location in incl_locs:
-                completions += self.get_include_completions(location[0], subdir, location[1])
+        for location in incl_locs:
+            completions += self.get_include_completions(location[0], "", location[1])
         if len(completions) > 0:
             return (completions,
                     sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
