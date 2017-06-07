@@ -67,9 +67,6 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         print("Looking for completions in %s (ignoring %s)" % (root, ignore))
         for path, dirs, files in os.walk(root, topdown=True):
             reldir = path[root_len:]
-            print(path)
-            print(dirs)
-            print(reldir)
             for f in files:
                 if f.endswith('.h'):
                     completion = os.path.join(reldir,f) if len(reldir) > 0 else f
