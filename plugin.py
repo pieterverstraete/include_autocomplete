@@ -65,17 +65,31 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         return completions
 
     def on_query_completions(self, view, prefix, locations):
+        # If we have more than one location, forget about it.
         if len(locations) != 1:
             return None
+
+        # If we're not in an include statement, forget about it.
         if not view.match_selector(locations[0],
                                    "meta.preprocessor.include & "
                                    "(string.quoted.other | "
                                    "string.quoted.double)"):
             return None
+
+        # Get the include directories of the project.
         incl_locs = self.get_include_locations(view)
+
+        # Get the subdir.
+        scope = view.extract_scope(locations[0])
+        firstline = view.split_by_newlines(scope)[0]
+        subdir = view.substr(firstline)
+        subdir = subdir.strip('"<>')
+        subdir = subdir[:-len(prefix)]
+
+        # Present the completions.
         completions = []
         for location in incl_locs:
-            completions += self.get_include_completions(location[0], "", location[1])
+            completions += self.get_include_completions(location[0], subdir, location[1])
         if len(completions) > 0:
             return (completions,
                     sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
