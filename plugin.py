@@ -83,7 +83,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         scope = view.extract_scope(locations[0])
         firstline = view.split_by_newlines(scope)[0]
         subdir = view.substr(firstline)
-        subdir = subdir.strip('"<>')
+        subdir = subdir.strip(' "<>')
         subdir = subdir[:-len(prefix)]
 
         # Present the completions.
