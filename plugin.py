@@ -47,7 +47,8 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         vars = view.window().extract_variables()
 
         # EasyClangComplete hack.
-        vars.update({"project_base_path": vars["project_path"]})
+        vars.update({"project_base_path": vars.get("project_path",
+                                                   vars.get("folder", ""))})
 
         # Parse EasyClangComplete's "flags_sources" dictionary (if we have it).
         for source in sources:
