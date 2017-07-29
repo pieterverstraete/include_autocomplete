@@ -14,9 +14,13 @@
 				"ignore": []
 			},
 			{
-				"path": "/users/pverstra/.config/sublime-text-3/Packages/include_autocomplete/test/lib",
+				"path": "${project_path}/../lib",
 				"ignore": [ "exclude", "exclude2" ]
 			}
 		]
+	},
+	"settings":
+	{
+		"compile_commands": "${project_path}/build"
 	}
 }
