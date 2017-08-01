@@ -64,12 +64,15 @@ to your `.sublime-project` file:
 ```
 
 The "include locations" key is a list of dictionaries, each containing the
-following keys: `path`: The directory where we should (recursively) look for
-`.h` files. This path can be either absolute or relative. In the latter case, we
-will look relative to the directory of the file in which we are trying to
-autocomplete an `#include` directive. This variable supports snippet-like
-variables, e.g. `${project_path}/include`. `ignore`: A list of paths relative to
-`path`, that we should ignore when searching for `.h` files.
+following keys:
+
+* `path`: The directory where we should (recursively) look for `.h` files. This
+path can be either absolute or relative. In the latter case, we will look
+relative to the directory of the file in which we are trying to autocomplete an
+`#include` directive. This variable supports snippet-like variables, e.g.
+`${project_path}/include`.
+* `ignore`: A list of paths relative to `path`, that we should ignore when
+searching for `.h` files.
 
 ### Compilation Database
 
