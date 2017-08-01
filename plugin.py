@@ -1,12 +1,16 @@
-import os, re, time, collections
-import sublime, sublime_plugin
+"""Listens to completion queries in #include statements."""
 
+import os
+import collections
+import json
+import sublime
+import sublime_plugin
 
 # Include setting keys
 STR_INCL_SETTINGS = 'include_autocomplete_settings'
-STR_INCL_SETTING_INCL_LOC       = 'include_locations'
-STR_INCL_SETTING_IL_PATH        = 'path'
-STR_INCL_SETTING_IL_IGNORE      = 'ignore'
+STR_INCL_SETTING_INCL_LOC = 'include_locations'
+STR_INCL_SETTING_IL_PATH = 'path'
+STR_INCL_SETTING_IL_IGNORE = 'ignore'
 
 # Default include setting values
 DEF_INCL_SETTING_IL_PATH = '.'
@@ -21,13 +25,103 @@ DEF_INCL_SETTINGS = {
     STR_INCL_SETTING_INCL_LOC: DEF_INCL_SETTING_INCL_LOC
 }
 
+HEADER_EXT = (".h", ".hh", ".hpp", ".hxx", ".inl", ".inc", ".ipp")
+
 
 class IncludeAutoComplete(sublime_plugin.EventListener):
-    def get_include_locations(self, view):
-        # Returns a list of location tuples
+    """Listens to completion queries in "#include" statements."""
+
+    def _get_include_locations(self, view):
+        result = self._get_include_locations_from_compile_commands(view)
+        result.extend(self._get_include_locations_from_project_data(view))
+        return result
+
+    def _get_include_locations_from_compile_commands(self, view):
+
+        # Look for various commonly used settings. This is a heuristic.
+        sources = view.settings().get("ecc_flags_sources", [])
+        if not sources:
+            # Try this one instead.
+            sources = view.settings().get(
+                "easy_clang_complete_flags_sources", [])
+        vars = view.window().extract_variables()
+
+        # EasyClangComplete hack.
+        vars.update({"project_base_path": vars.get("project_path",
+                                                   vars.get("folder", ""))})
+
+        # Parse EasyClangComplete's "flags_sources" dictionary (if we have it).
+        for source in sources:
+            if source["file"] == "compile_commands.json":
+                compdb = source["search_in"]
+                compdb = sublime.expand_variables(compdb, vars)
+                compdb = os.path.join(compdb, "compile_commands.json")
+                if os.path.exists(compdb):
+                    # Success.
+                    return self._read_compilation_database(view, compdb)
+
+        # Try this one at this point.
+        sources = view.settings().get("compile_commands", "")
+        if sources:
+            sources = sublime.expand_variables(sources, vars)
+            sources = os.path.join(sources, "compile_commands.json")
+            if os.path.exists(sources):
+                # Success.
+                return self._read_compilation_database(view, sources)
+
+        # No success.
+        return []
+
+    def _read_compilation_database(self, view, path):
+        print("found compilation database:", path)
+        result = set()
+
+        def add_include(result, include):
+            if not os.path.isabs(include):
+                dirname = os.path.dirname(view.file_name())
+                include = os.path.join(dirname, include)
+                include = os.path.abspath(include)
+            result.add(include)
+
+        def parse_command(result, command):
+            command = command.split()
+            take_next = False
+            for c in command:
+                if take_next:
+                    add_include(result, c)
+                    take_next = False
+                elif c in ("-isystem", "-I"):
+                    take_next = True
+                elif c.startswith("-I"):
+                    add_include(result, c[2:])
+
+        found = None
+        with open(path, "r") as f:
+            compdb = json.load(f)
+            if view.file_name().endswith(HEADER_EXT):
+                # Just add all possible include dirs if we're in a header file.
+                for item in compdb:
+                    parse_command(result, item["command"])
+            else:
+                # Otherwise, find our file in the compilation database, and
+                # parse the compiler invocation.
+                found = False
+                for item in compdb:
+                    if item["file"] == view.file_name():
+                        parse_command(result, item["command"])
+                        found = True
+                        break
+
+        if found is not None and not found:
+            # The file is not a header, there's a compilation database, but the
+            # file is not in it.
+            print("warning:", view.file_name(),
+                  "does not have compile commands.")
+        return [(include, []) for include in result]
+
+    def _get_include_locations_from_project_data(self, view):
         result = []
         filedir = os.path.dirname(view.file_name())
-        # 1. Get include locations from project data
         incl_settings = DEF_INCL_SETTINGS
         project_data = view.window().project_data()
         if project_data:
@@ -48,7 +142,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
                 result.append((path, ignore))
         return result
 
-    def get_include_completions(self, basedir, subdir, ignore):
+    def _get_include_completions(self, basedir, subdir, ignore):
         completions = []
         root = os.path.join(basedir, subdir)
         root_len = len(root)
@@ -56,7 +150,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         for path, dirs, files in os.walk(root, topdown=True):
             reldir = path[root_len:]
             for f in files:
-                if f.endswith(('.h', '.hh', '.hpp', '.hxx', '.inl', '.inc', '.ipp')):
+                if f.endswith(HEADER_EXT):
                     completion = os.path.join(reldir,f) if len(reldir) > 0 else f
                     completions.append(["%s\t%s"%(f,reldir), completion])
             dirs[:] = [d for d in dirs if os.path.join(reldir,d) not in ignore]
@@ -77,7 +171,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
             return None
 
         # Get the include directories of the project.
-        incl_locs = self.get_include_locations(view)
+        incl_locs = self._get_include_locations(view)
 
         # Get the subdir.
         scope = view.extract_scope(locations[0])
@@ -89,7 +183,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         # Present the completions.
         completions = []
         for location in incl_locs:
-            completions += self.get_include_completions(location[0], subdir, location[1])
+            completions += self._get_include_completions(location[0], subdir, location[1])
         if len(completions) > 0:
             return (completions,
                     sublime.INHIBIT_WORD_COMPLETIONS | sublime.INHIBIT_EXPLICIT_COMPLETIONS)
