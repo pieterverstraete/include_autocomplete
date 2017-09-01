@@ -6,6 +6,36 @@ import json
 import sublime
 import sublime_plugin
 
+import logging
+
+
+def InitializeMainLogger(main_logger):
+    """Apply required settings to the main logger.
+    """
+    if not main_logger.hasHandlers():
+        # Must be set to lowest level to get total freedom in handlers
+        main_logger.setLevel(logging.DEBUG)
+
+        # Disable log duplications when reloading
+        main_logger.propagate = False
+
+        # Create / override console handler
+        console_handler = logging.StreamHandler()
+        console_handler.setLevel(logging.DEBUG)
+
+        # Create formatter and add it to the handler
+        formatter = logging.Formatter(
+            '[Include Autocomplete / %(levelname)s] %(message)s')
+        console_handler.setFormatter(formatter)
+
+        # Add the handler to logger
+        main_logger.addHandler(console_handler)
+
+
+logger = logging.getLogger(__name__)
+InitializeMainLogger(logger)
+
+
 # Include setting keys
 STR_INCL_SETTINGS = 'include_autocomplete_settings'
 STR_INCL_SETTING_INCL_LOC = 'include_locations'
@@ -73,7 +103,7 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         return []
 
     def _read_compilation_database(self, view, path):
-        print("found compilation database:", path)
+        logger.info("found compilation database: %s", path)
         result = set()
 
         def add_include(result, include):
@@ -115,8 +145,8 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         if found is not None and not found:
             # The file is not a header, there's a compilation database, but the
             # file is not in it.
-            print("warning:", view.file_name(),
-                  "does not have compile commands.")
+            logger.warning(
+                "%s does not have compile commands.", view.file_name())
         return [(include, []) for include in result]
 
     def _get_include_locations_from_project_data(self, view):
@@ -146,7 +176,8 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         completions = []
         root = os.path.join(basedir, subdir)
         root_len = len(root)
-        print("Looking for completions in %s (ignoring %s)" % (root, ignore))
+        logger.debug(
+            "Looking for completions in %s (ignoring %s)", root, ignore)
         for path, dirs, files in os.walk(root, topdown=True):
             reldir = path[root_len:]
             for f in files:
