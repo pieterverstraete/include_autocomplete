@@ -76,24 +76,23 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         print("found compilation database:", path)
         result = set()
 
-        def add_include(result, include):
+        def add_include(result, include, directory):
             if not os.path.isabs(include):
-                dirname = os.path.dirname(view.file_name())
-                include = os.path.join(dirname, include)
+                include = os.path.join(directory, include)
                 include = os.path.abspath(include)
             result.add(include)
 
-        def parse_command(result, command):
+        def parse_command(result, command, directory):
             command = command.split()
             take_next = False
             for c in command:
                 if take_next:
-                    add_include(result, c)
+                    add_include(result, c, directory)
                     take_next = False
                 elif c in ("-isystem", "-I"):
                     take_next = True
                 elif c.startswith("-I"):
-                    add_include(result, c[2:])
+                    add_include(result, c[2:], directory)
 
         found = None
         with open(path, "r") as f:
@@ -101,14 +100,14 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
             if view.file_name().endswith(HEADER_EXT):
                 # Just add all possible include dirs if we're in a header file.
                 for item in compdb:
-                    parse_command(result, item["command"])
+                    parse_command(result, item["command"], item["directory"])
             else:
                 # Otherwise, find our file in the compilation database, and
                 # parse the compiler invocation.
                 found = False
                 for item in compdb:
                     if item["file"] == view.file_name():
-                        parse_command(result, item["command"])
+                        parse_command(result, item["command"], item["directory"])
                         found = True
                         break
 
