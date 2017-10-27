@@ -71,9 +71,11 @@ class IncludeAutoComplete(sublime_plugin.EventListener):
         # Look for various commonly used settings. This is a heuristic.
         sources = view.settings().get("ecc_flags_sources", [])
         if not sources:
-            # Try this one instead.
-            sources = view.settings().get(
-                "easy_clang_complete_flags_sources", [])
+            sources = view.settings().get("easy_clang_complete_flags_sources", [])
+        if not sources:
+            sources = sublime.load_settings("EasyClangComplete.sublime-settings").get("ecc_flags_sources", [])
+        if not sources:
+            sources = sublime.load_settings("EasyClangComplete.sublime-settings").get("easy_clang_complete_flags_sources", [])
         vars = view.window().extract_variables()
 
         # EasyClangComplete hack.
